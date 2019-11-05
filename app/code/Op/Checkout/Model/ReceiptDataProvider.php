@@ -16,6 +16,7 @@ use Magento\Sales\Model\Service\InvoiceService;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Framework\DB\TransactionFactory;
 use Magento\Sales\Api\Data\OrderInterface;
+use \Psr\Log\LoggerInterface;
 
 class ReceiptDataProvider
 {
@@ -62,8 +63,33 @@ class ReceiptDataProvider
     protected $transactionId;
     protected $paramsStamp;
     protected $paramsMethod;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
-
+    /**
+     * ReceiptDataProvider constructor.
+     * @param \Magento\Framework\App\Action\Context $context
+     * @param \Magento\Checkout\Model\Session $session
+     * @param \Magento\Sales\Api\TransactionRepositoryInterface $transactionRepository
+     * @param \Magento\Sales\Model\Order\Email\Sender\OrderSender $orderSender
+     * @param TransportBuilder $transportBuilder
+     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+     * @param OrderManagementInterface $orderManagementInterface
+     * @param ResponseValidator $responseValidator
+     * @param OrderRepositoryInterface $orderRepositoryInterface
+     * @param transactionBuilderInterface $transactionBuilderInterface
+     * @param opCapture $opCapture
+     * @param Signature $signature
+     * @param InvoiceService $invoiceService
+     * @param OrderStatusHistoryRepositoryInterface $orderStatusHistoryRepository
+     * @param TransactionFactory $transactionFactory
+     * @param opHelper $opHelper
+     * @param OrderInterface $orderInterface
+     * @param transactionBuilder $transactionBuilder
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         \Magento\Framework\App\Action\Context $context,
         \Magento\Checkout\Model\Session $session,
@@ -82,7 +108,8 @@ class ReceiptDataProvider
         TransactionFactory $transactionFactory,
         opHelper $opHelper,
         OrderInterface $orderInterface,
-        transactionBuilder $transactionBuilder
+        transactionBuilder $transactionBuilder,
+        LoggerInterface $logger
     ) {
         $this->urlBuilder = $context->getUrl();
         $this->session = $session;
@@ -103,6 +130,7 @@ class ReceiptDataProvider
         $this->opHelper = $opHelper;
         $this->context = $context;
         $this->orderInterface = $orderInterface;
+        $this->logger = $logger;
     }
 
     /* TODO: MOST OF THE LOGIC GOES HERE! */
@@ -148,7 +176,7 @@ class ReceiptDataProvider
         try {
             $this->orderSender->send($this->currentOrder);
         } catch (\Exception $e) {
-            // TODO: log or not email sending issues ? atleast no need to break on this error.
+            $this->logger->critical('Failed to send order email:' . $e);
         }
     }
 
@@ -214,7 +242,7 @@ class ReceiptDataProvider
             'orderNo'   => $this->orderIncrementalId,
             'stamp'     => $this->paramsStamp,
             'method'    => $this->paramsMethod
-                ];
+        ];
     }
 
     protected function loadOrder()
