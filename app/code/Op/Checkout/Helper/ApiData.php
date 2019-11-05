@@ -9,7 +9,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Tax\Helper\Data as TaxHelper;
 use Magento\Directory\Api\CountryInformationAcquirerInterface;
 use Psr\Log\LoggerInterface;
-
+use Op\Checkout\Helper\Data as DataHelper;
 
 class ApiData
 {
@@ -69,6 +69,11 @@ class ApiData
     private $moduleList;
 
     /**
+     * @var DataHelper
+     */
+    private $dataHelper;
+
+    /**
      * ApiData constructor.
      * @param LoggerInterface $log
      * @param Signature $signature
@@ -79,6 +84,7 @@ class ApiData
      * @param TaxHelper $taxHelper
      * @param Config $resourceConfig
      * @param ModuleListInterface $moduleList
+     * @param DataHelper $dataHelper
      */
     public function __construct(
         LoggerInterface $log,
@@ -89,7 +95,8 @@ class ApiData
         CountryInformationAcquirerInterface $countryInformationAcquirer,
         TaxHelper $taxHelper,
         Config $resourceConfig,
-        ModuleListInterface $moduleList
+        ModuleListInterface $moduleList,
+        DataHelper $dataHelper
     ) {
         $this->log = $log;
         $this->signature = $signature;
@@ -100,6 +107,7 @@ class ApiData
         $this->taxHelper = $taxHelper;
         $this->resourceConfig = $resourceConfig;
         $this->moduleList = $moduleList;
+        $this->dataHelper = $dataHelper;
     }
 
     /**
@@ -186,12 +194,12 @@ class ApiData
      */
     protected function getResponseHeaders($account, $method)
     {
-        return $headers = [
+        return [
             'cof-plugin-version' => 'op-payment-service-for-magento-2-'.$this->getExtensionVersion(),
             'checkout-account' => $account,
             'checkout-algorithm' => 'sha256',
             'checkout-method' => strtoupper($method),
-            'checkout-nonce' => uniqid(true),
+            'checkout-nonce' => uniqid('', true),
             'checkout-timestamp' => date('Y-m-d\TH:i:s.000\Z', time()),
             'content-type' => 'application/json; charset=utf-8',
         ];
@@ -235,8 +243,10 @@ class ApiData
             JSON_UNESCAPED_SLASHES
         );
 
-        // TODO: DEBUG Log
-        $this->log->debug($body);
+        if ($this->dataHelper->getDebugLoggerStatus()) {
+            $this->log->debug($body);
+        }
+
 
         return $body;
     }
